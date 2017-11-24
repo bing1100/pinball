@@ -9,10 +9,12 @@ import matplotlib.pyplot as mpp
 start_p1 = spg.Point(0,0)
 
 ax=mpp.gca()
-start = spg.Ray(start_p1,angle=mp.pi/4)
+
+start = spg.Ray(start_p1,angle=mp.pi/11)
 
 CD_CR_RATIO = 3
 
+max_num_reflections = 3
 
 has_escaped = False
 newRay = start
@@ -37,11 +39,6 @@ C3_sym = create_circle_sym(C3_Cen,1)
 
 all_circles = [mpp.Circle(C1_Cen,1), mpp.Circle(C2_Cen,1),mpp.Circle(C3_Cen,1)]
 
-def create_line_graph(point1, point2):
-    p1 = spg.Point(point1[0], point1[1])
-    p2 = spg.Point(point2[0], point2[1])
-    return spg.Ray(p1,p2)
-
 def has_intersection_sym(circle, ray):
     r_source = ray.source
 
@@ -63,24 +60,28 @@ def find_reflected_ray_sym(circle, ray, intersection):
     r_source = ray.source
     c_centre = circle.center
 
-    line = spg.Line(intersection,c_centre)
+    line = spg.Ray(intersection,c_centre)
 
     shift_angle = float(line.angle_between(ray))
 
     inter_centered = intersection - r_source
-    cente_centered = - c_centre - r_source
+    cente_centered = c_centre - r_source
 
     dot_vec = inter_centered.x * cente_centered.x + inter_centered.y * cente_centered.y
-    det_vec = inter_centered.x * cente_centered.y + inter_centered.y * cente_centered.x 
-
-    print("dot: " + str(float(dot_vec)) + " det: " + str(float(det_vec)))
+    det_vec = inter_centered.x * cente_centered.y - inter_centered.y * cente_centered.x 
 
     ray_center_angle = mp.atan2(float(det_vec), float(dot_vec))
 
-    if ray_center_angle < mp.pi:
-        return spg.Ray(intersection, angle = 2*shift_angle - sp.Abs(mp.pi - ray_center_angle))
+    ray_baseline = mp.atan2(float(cente_centered.y), float(cente_centered.x))
+
+    ray_baseline = ray_baseline if ray_baseline >= 0 else ray_baseline + 2 * mp.pi
+
+    print("shift_angle: " + str(shift_angle) + " ray_center_angle: " + str(ray_center_angle))
+
+    if ray_center_angle > 0:
+        return spg.Ray(intersection, angle = ray_baseline - (mp.pi - 2*shift_angle + sp.Abs(ray_center_angle)))
     else:
-        return spg.Ray(intersection, angle = -(2*shift_angle - sp.Abs(mp.pi - ray_center_angle)))
+        return spg.Ray(intersection, angle = ray_baseline + (mp.pi - 2*shift_angle + sp.Abs(ray_center_angle)))
 
 def show_shapes(patchs):
 
@@ -95,19 +96,13 @@ def reflection_stepper(circle_num,circle,intersect):
     x = [newRay.source.x]
     y = [newRay.source.y]
     newRay = find_reflected_ray_sym(circle, newRay, intersect)
-    x = x.append(newRay.source.x)
-    y = y.append(newRay.source.y)
-    print(x + "\n")
-    print(y)
+    x.append(newRay.source.x)
+    y.append(newRay.source.y)
     whichCircle = circle_num
     ax.plot(x,y, marker='o')
 
-while(n_reflection <= 1 and not has_escaped):
-
+while(n_reflection <= max_num_reflections and not has_escaped):
     n_reflection += 1
-    print(n_reflection)
-
-    print(newRay)
 
     if whichCircle == 1:
 
@@ -123,6 +118,7 @@ while(n_reflection <= 1 and not has_escaped):
             reflection_stepper(3, C3_sym, C3_intersect[1])
         else:
             has_escaped = True
+            ax.plot([newRay.source.x, newRay.p2.x], [newRay.source.y, newRay.p2.y], marker = 'o')
         
 
         
@@ -140,6 +136,7 @@ while(n_reflection <= 1 and not has_escaped):
             reflection_stepper(3, C3_sym, C3_intersect[1])
         else:
             has_escaped = True
+            ax.plot([newRay.source.x, newRay.p2.x], [newRay.source.y, newRay.p2.y], marker = 'o')
     else:
         
         p1 = newRay.source
@@ -153,5 +150,7 @@ while(n_reflection <= 1 and not has_escaped):
             reflection_stepper(2, C2_sym, C2_intersect[1])
         else:
             has_escaped = True
+            ax.plot([newRay.source.x, newRay.p2.x], [newRay.source.y, newRay.p2.y], marker = 'o')
 
+mpp.ylim([5,5])
 show_shapes(all_circles)
