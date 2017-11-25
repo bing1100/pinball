@@ -4,25 +4,24 @@ class Line():
 
     def __init__(self, point, angle):
 
-        mod_angle = (angle + mp.pi/2) % (2*mp.pi)
-        step_x_coord = -1 if mod_angle >= mp.pi else 1
-        step_y_coord = step_x_coord * mp.sin(angle) 
+        vec_x = mp.cos(angle)
+        vec_y = mp.sin(angle) 
 
         self.point = point
-        self.step_shift =[step_x_coord, step_y_coord]
+        self.vec =[vec_x, vec_y]
         self.angle = angle
 
     def evaluate_x(self, x):
 
-        time_factor = (x - self.point[0]) / self.step_shift[0]
+        time_factor = (x - self.point[0]) / self.vec[0]
 
-        return [x, self.point[1] + time_factor * self.step_shift[1]]
+        return [x, self.point[1] + time_factor * self.vec[1]]
 
     def evaluate_y(self, y):
 
-        time_factor = (y - self.point[1]) / self.step_shift[1]
+        time_factor = (y - self.point[1]) / self.vec[1]
 
-        return [self.point[0] + time_factor * self.step_shift[0], y]
+        return [self.point[0] + time_factor * self.vec[0], y]
 
     def intersection(self, line):
 
@@ -42,11 +41,11 @@ class Line():
 
     def angle_between(self, line):
         
-        l1_vec = self.step_shift
-        l2_vec = line.step_shift
+        l1_vec = self.vec
+        l2_vec = line.vec
 
         dot_vec = l1_vec[0] * l2_vec[0] + l1_vec[1] * l2_vec[1]
-        det_vec = l1_vec[0] * l2_vec[1] + l1_vec[1] * l2_vec[0]
+        det_vec = l1_vec[0] * l2_vec[1] - l1_vec[1] * l2_vec[0]
 
         return mp.atan2(det_vec, dot_vec)
 
@@ -121,9 +120,10 @@ class Circle():
         else:
             intersection_point = intersection_point[0]
 
-        # find the norm of the circle at the intersection point
-        delta_x = intersection_point[0] - self.center[0]
-        delta_y = intersection_point[1] - self.center[1]
+        # find the norm of the circle at the intersection point with direction reversed
+        #  need to match the direction of line inorder to get the inner angle
+        delta_x = - intersection_point[0] + self.center[0]
+        delta_y = - intersection_point[1] + self.center[1]
         angle   = mp.atan2(delta_y, delta_x)
         norm    = Line(intersection_point, angle)
 
@@ -134,10 +134,10 @@ class Circle():
         ls_to_c = Line(self.center, angle)        
 
         # Useful angles to have
-        # theta - angle between norm and line
+        # theta - absolute angle between norm and line
         # base  - angle of the ls_to_c line
         # phi   - angle between line and ls_to_c line
-        theta = norm.angle_between(line)
+        theta = abs(norm.angle_between(line))
         base  = ls_to_c.angle
         phi   = ls_to_c.angle_between(line)
 
@@ -151,3 +151,11 @@ class Circle():
 
         return Line(intersection_point, angle)
 
+# Testcases
+
+l1 = Line((0,0), mp.pi)
+l2 = Line((0,0), mp.pi/3)
+l3 = Line((1,0), 0)
+
+print(l1.angle_between(l2))
+print(l3.angle_between(l2))
