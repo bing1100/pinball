@@ -1,156 +1,109 @@
-import sympy as sp
-import sympy.geometry as spg 
-import sympy.plotting as spp
-import mpmath as mp
-from sympy import symbols
+import computation as cpt
 import matplotlib.pyplot as mpp
+import mpmath as mp
 
-#Starting ray
-start_p1 = spg.Point(0,0)
+# Global variables
 
-ax=mpp.gca()
-
-start = spg.Ray(start_p1,angle=mp.pi/11)
-
+MAX_REFLECTIONS = 2
 CD_CR_RATIO = 3
+START_ANGLE = mp.pi/2
 
-max_num_reflections = 3
+fig = mpp.gca()
 
-has_escaped = False
-newRay = start
+numReflections = 0
+hasEscaped = False
 whichCircle = 1
+cLine = cpt.Line((0,0), START_ANGLE)
 
-n_reflection = 0
+cxPoint = mp.sqrt(CD_CR_RATIO ** 2 - (CD_CR_RATIO/2) **2 )
 
-C_xPoint = sp.sqrt(sp.Pow(CD_CR_RATIO,2)
-                    - sp.Pow(CD_CR_RATIO/2,2))
+c1Cen = [0,0]
+c2Cen = [cxPoint, CD_CR_RATIO/2]
+c3Cen = [cxPoint, -CD_CR_RATIO/2]
 
-C1_Cen = [0,0]
-C2_Cen = [C_xPoint, CD_CR_RATIO/2]
-C3_Cen = [C_xPoint, -CD_CR_RATIO/2]
+c1 = cpt.Circle(c1Cen, 1)
+c2 = cpt.Circle(c2Cen, 1)
+c3 = cpt.Circle(c3Cen, 1)
 
-def create_circle_sym(centre, radius):
-    p = spg.Point(centre[0],centre[1])
-    return spg.Circle(p, radius)
-
-C1_sym = create_circle_sym(C1_Cen,1)
-C2_sym = create_circle_sym(C2_Cen,1)
-C3_sym = create_circle_sym(C3_Cen,1)
-
-all_circles = [mpp.Circle(C1_Cen,1), mpp.Circle(C2_Cen,1),mpp.Circle(C3_Cen,1)]
-
-def has_intersection_sym(circle, ray):
-    r_source = ray.source
-
-    intersection_points = circle.intersection(ray)
-
-    if len(intersection_points) != 2:
-        return [False]
-    else:
-        if r_source.distance(intersection_points[0]) > r_source.distance(intersection_points[1]):
-            print(str(float(intersection_points[1].x)) + " " + str(float(intersection_points[1].x)))
-            return [True,intersection_points[1]]
-        else:
-
-            print(str(float(intersection_points[0].x)) + " " + str(float(intersection_points[0].x)))
-            return [True,intersection_points[0]]
-    
-
-def find_reflected_ray_sym(circle, ray, intersection):
-    r_source = ray.source
-    c_centre = circle.center
-
-    line = spg.Ray(intersection,c_centre)
-
-    shift_angle = float(line.angle_between(ray))
-
-    inter_centered = intersection - r_source
-    cente_centered = c_centre - r_source
-
-    dot_vec = inter_centered.x * cente_centered.x + inter_centered.y * cente_centered.y
-    det_vec = inter_centered.x * cente_centered.y - inter_centered.y * cente_centered.x 
-
-    ray_center_angle = mp.atan2(float(det_vec), float(dot_vec))
-
-    ray_baseline = mp.atan2(float(cente_centered.y), float(cente_centered.x))
-
-    ray_baseline = ray_baseline if ray_baseline >= 0 else ray_baseline + 2 * mp.pi
-
-    print("shift_angle: " + str(shift_angle) + " ray_center_angle: " + str(ray_center_angle))
-
-    if ray_center_angle > 0:
-        return spg.Ray(intersection, angle = ray_baseline - (mp.pi - 2*shift_angle + sp.Abs(ray_center_angle)))
-    else:
-        return spg.Ray(intersection, angle = ray_baseline + (mp.pi - 2*shift_angle + sp.Abs(ray_center_angle)))
+all_circles = [mpp.Circle(c1Cen,1), mpp.Circle(c2Cen,1),mpp.Circle(c3Cen,1)]
 
 def show_shapes(patchs):
 
     for patch in patchs:
-        ax.add_patch(patch)
+        fig.add_patch(patch)
     mpp.axis('scaled')
     mpp.grid(True)
     mpp.show()
 
-def reflection_stepper(circle_num,circle,intersect):
-    global newRay, ax, whichCircle
-    x = [newRay.source.x]
-    y = [newRay.source.y]
-    newRay = find_reflected_ray_sym(circle, newRay, intersect)
-    x.append(newRay.source.x)
-    y.append(newRay.source.y)
-    whichCircle = circle_num
-    ax.plot(x,y, marker='o')
+# Start of script
 
-while(n_reflection <= max_num_reflections and not has_escaped):
-    n_reflection += 1
+def reflectionStepper(c1_data, c2_data, c3_data, line):
+
+    global cLine, whichCircle, hasEscaped
+
+    start_x = line.point[0]
+    start_y = line.point[1]
+
+    if c1_data[0]:
+        whichCircle = 1
+        cLine = cpt.Line(c1_data[1], c1_data[2])
+    elif c2_data[0]:
+        whichCircle = 2
+        cLine = cpt.Line(c2_data[1], c2_data[2])
+    elif c3_data[0]:
+        whichCircle = 3
+        cLine = cpt.Line(c3_data[1], c3_data[2])
+    else:
+        hasEscaped = True
+        whichCircle = 0
+        cLine = cpt.Line(line.newPoint, 0)
+
+    line_x = [start_x, cLine.point[0]]
+    line_y = [start_y, cLine.point[1]]
+
+    return [line_x, line_y]
+
+while ( numReflections < MAX_REFLECTIONS and not hasEscaped):
+    
+    numReflections += 1
 
     if whichCircle == 1:
 
-        p1 = newRay.source
+        c1_data = [False]
+        c2_data = c2.reflection(cLine)
+        c3_data = c3.reflection(cLine)
 
-        C2_intersect = has_intersection_sym(C2_sym, newRay)
-        C3_intersect = has_intersection_sym(C3_sym, newRay)
+        line_data = reflectionStepper(c1_data, c2_data, c3_data, cLine)
 
-        if C2_intersect[0]:
-            reflection_stepper(2, C2_sym, C2_intersect[1])
-            
-        elif C3_intersect[0]:
-            reflection_stepper(3, C3_sym, C3_intersect[1])
-        else:
-            has_escaped = True
-            ax.plot([newRay.source.x, newRay.p2.x], [newRay.source.y, newRay.p2.y], marker = 'o')
-        
-
-        
+        fig.plot(line_data[0], line_data[1])
 
     elif whichCircle == 2:
-        
-        p1 = newRay.source
 
-        C1_intersect = has_intersection_sym(C1_sym, newRay)
-        C3_intersect = has_intersection_sym(C3_sym, newRay)
+        c1_data = c1.reflection(cLine)
+        c2_data = [False]
+        c3_data = c3.reflection(cLine)
 
-        if C1_intersect[0]:
-            reflection_stepper(1, C1_sym, C1_intersect[1])
-        elif C3_intersect[0]:
-            reflection_stepper(3, C3_sym, C3_intersect[1])
-        else:
-            has_escaped = True
-            ax.plot([newRay.source.x, newRay.p2.x], [newRay.source.y, newRay.p2.y], marker = 'o')
-    else:
-        
-        p1 = newRay.source
+        line_data = reflectionStepper(c1_data, c2_data, c3_data, cLine)
 
-        C1_intersect = has_intersection_sym(C1_sym, newRay)
-        C2_intersect = has_intersection_sym(C2_sym, newRay)
+        fig.plot(line_data[0], line_data[1])
 
-        if C1_intersect[0]:
-            reflection_stepper(1, C1_sym, C1_intersect[1])
-        elif C2_intersect[0]:
-            reflection_stepper(2, C2_sym, C2_intersect[1])
-        else:
-            has_escaped = True
-            ax.plot([newRay.source.x, newRay.p2.x], [newRay.source.y, newRay.p2.y], marker = 'o')
+    elif whichCircle == 3:
 
-mpp.ylim([5,5])
+        c1_data = c1.reflection(cLine)
+        c2_data = c2.reflection(cLine)
+        c3_data = [False]
+
+        line_data = reflectionStepper(c1_data, c2_data, c3_data, cLine)
+
+        fig.plot(line_data[0], line_data[1])
+
 show_shapes(all_circles)
+
+
+
+
+        
+
+
+
+    

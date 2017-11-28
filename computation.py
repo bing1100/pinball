@@ -19,7 +19,7 @@ class Line():
         self.point = point          # Point on the line
         self.vec   = [vec_x, vec_y] # Direction Vector
         self.angle = angle          # The angle of the direction vector
-        self.eq    = [point, (new_x, new_y)] # The eq for graphing purposes 
+        self.newPoint    = [new_x, new_y] # The eq for graphing purposes 
 
     # evaluate_x(x)
     #  x - the x coordinate
@@ -150,15 +150,11 @@ class Circle():
     def reflection(self, line):
 
         # find intersection point if it exists
-        intersection_point = self.intersection(line)
-
-        print("hellp")
-        print(intersection_point)
-        print("her")    
+        intersection_point = self.intersection(line) 
 
         # Cull so we take the closest intersection point
         if len(intersection_point) == 0:
-            return False
+            return [False, line.newPoint]
         elif len(intersection_point) == 2:
             distance_1 = abs(intersection_point[0][0] - line.point[0])
             distance_2 = abs(intersection_point[1][0] - line.point[0])
@@ -172,9 +168,6 @@ class Circle():
 
         # find the norm of the circle at the intersection point with direction reversed
         #  need to match the direction of line inorder to get the inner angle
-
-        
-
         delta_x = - (intersection_point[0] + self.center[0])
         delta_y = - (intersection_point[1] + self.center[1])
         angle   = mp.atan2(delta_y, delta_x)
@@ -202,20 +195,4 @@ class Circle():
         else:
             angle = base + ( mp.pi - 2*theta + abs(phi))
 
-        return Line(intersection_point, angle)
-'''
-Some testcases for the Line and Circle classes
-'''
-l1 = Line((0,0), mp.pi)
-l2 = Line((0,0), mp.pi/2)
-l3 = Line((1,0), 0)
-
-c1 = Circle((0,0), 1)
-c2 = Circle((3,3), 1)
-
-print(l3.angle_between(l1) == l1.angle)
-print(l3.angle_between(l2) == l2.angle)
-print(c1.intersection(l2))
-print(c2.reflection(l2))
-
-
+        return [True, intersection_point, angle]
