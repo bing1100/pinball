@@ -19,7 +19,8 @@ class Line():
         self.point = point          # Point on the line
         self.vec   = [vec_x, vec_y] # Direction Vector
         self.angle = angle          # The angle of the direction vector
-        self.newPoint    = [new_x, new_y] # The eq for graphing purposes 
+        self.newPoint = [new_x, new_y] # The eq for graphing purposes 
+        self.eq = [[point[0], new_x], [point[1], new_y]]
 
     # evaluate_x(x)
     #  x - the x coordinate
@@ -87,7 +88,7 @@ class Circle():
     def __init__(self, center, radius):
         self.center = center # The center of the circle
         self.radius = radius # The radius of the circle
-        self.eq     = plt.Circle(center, radius) # The eq for graphing purposes
+        self.eq     = plt.Circle(center, radius, fill=None) # The eq for graphing purposes
 
     # evaluate_x(x)
     #  x - some x coordinate
@@ -117,13 +118,13 @@ class Circle():
         # (x - c_x)^2 + (line_slope*x + constant)^2 = r^2 
         line_slope = line.evaluate_x(1)[1] - line.evaluate_x(0)[1]
         constant = line.evaluate_x(0)[1] - self.center[1]
-        r_2 = self.radius**2
+        r = self.radius
         c_x = self.center[0]
 
         # Find coefficients of polynomial
-        x2_coeff = (line_slope + 1)**2
-        x1_coeff = - 2 * (line_slope*constant + c_x)
-        x0_coeff = c_x**2 + constant**2 - r_2
+        x2_coeff = line_slope**2 + 1
+        x1_coeff = 2 * (line_slope*constant - c_x)
+        x0_coeff = c_x**2 + constant**2 - r**2
 
         # Solve using quadratic formula
         disc = x1_coeff**2 - 4 * x2_coeff * x0_coeff # discriminant
@@ -132,13 +133,11 @@ class Circle():
 
         if disc == 0:
             x1 = -x1_coeff / (2*x2_coeff)
-            x_val_intersections = [x1.real]
-        else:
+            x_val_intersections = [x1]
+        elif disc > 0:
             x1 = (-x1_coeff + mp.sqrt(disc)) / (2*x2_coeff)
             x2 = (-x1_coeff - mp.sqrt(disc)) / (2*x2_coeff)
-            x_val_intersections = [x1.real,x2.real]
-
-        print(x_val_intersections)
+            x_val_intersections = [x1,x2]
 
         # transform to [x,y] coordinate form
         return [line.evaluate_x(x) for x in x_val_intersections]
@@ -154,7 +153,7 @@ class Circle():
 
         # Cull so we take the closest intersection point
         if len(intersection_point) == 0:
-            return [False, line.newPoint]
+            return [False]
         elif len(intersection_point) == 2:
             distance_1 = abs(intersection_point[0][0] - line.point[0])
             distance_2 = abs(intersection_point[1][0] - line.point[0])
@@ -166,33 +165,40 @@ class Circle():
         else:
             intersection_point = intersection_point[0]
 
+        # Check that the intersection point is in the direction of the line
+        within_x = ((intersection_point[0] - line.point[0]) / line.vec[0]) > 0
+        within_y = ((intersection_point[1] - line.point[1]) / line.vec[1]) > 0
+
+        if (not (within_x and within_y)):
+            return [False]
+
         # find the norm of the circle at the intersection point with direction reversed
         #  need to match the direction of line inorder to get the inner angle
-        delta_x = - (intersection_point[0] + self.center[0])
-        delta_y = - (intersection_point[1] + self.center[1])
+        delta_x = intersection_point[0] - self.center[0]
+        delta_y = intersection_point[1] - self.center[1]
         angle   = mp.atan2(delta_y, delta_x)
-        norm    = Line(intersection_point, angle)
+        norm    = Line(self.center, angle)
 
         # find the line between the center of the circle and line source
-        delta_x = line.point[0] - self.center[0]
-        delta_y = line.point[1] - self.center[1]
+        delta_x = -line.point[0] + self.center[0]
+        delta_y = -line.point[1] + self.center[1]
         angle   = mp.atan2(delta_y, delta_x)
         ls_to_c = Line(self.center, angle)        
 
         # Useful angles to have
-        # theta - absolute angle between norm and line
+        # theta - The angle between the norm and the line
         # base  - angle of the ls_to_c line
-        # phi   - angle between line and ls_to_c line
-        theta = abs(norm.angle_between(line))
-        base  = ls_to_c.angle
-        phi   = ls_to_c.angle_between(line)
+        # shift - The interior angle between the norm and line
+        theta = line.angle_between(norm)
+        base  = norm.angle
+        shift = mp.pi - abs(theta)
 
         # The angle of the reflection is equal to
-        # if phi > 0 then angle = base - ( pi - 2*theta + abs(phi))
-        # else            angle = base + ( pi - 2*theta + abs(phi))
-        if phi > 0:
-            angle = base - ( mp.pi - 2*theta + abs(phi))
+        # if theta > 0 then line is above base (-ve) so add the shift
+        # else              line is below vase 
+        if theta < 0:
+            angle = base + shift
         else:
-            angle = base + ( mp.pi - 2*theta + abs(phi))
+            angle = base - shift
 
-        return [True, intersection_point, angle]
+        return [True, Line(intersection_point, angle), intersection_point, norm]
