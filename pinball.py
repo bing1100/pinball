@@ -9,11 +9,11 @@ import mpmath as mp
 
 # Global Variables to change
 # The total number of relfections we want to keep track of
-MAX_REFLECTIONS = 2
+MAX_REFLECTIONS = 10
 # The ratio of distance between circle centers and radius of circle         
 CD_CR_RATIO     = 2.5
 # The angle of the first line from c1
-START_ANGLE     = mp.pi/5
+START_ANGLE     = mp.pi/7
 
 # Other global variables
 fig = mpp.gca()     
@@ -101,46 +101,66 @@ def reflectionStepper(c1_data, c2_data, c3_data):
         # Set the global variable hasEscaped to True
         hasEscaped = True
 
+def create_line(x_value, angle):
+
+    return cpt.Line(c1.evaluate_x(x_value), angle)
+
 '''
 
 Script
 
 '''
+def pinball(line, max_reflections):
 
-# Find the next reflection as long as total number of reflection
-#  smaller than a max number and the line has not escaped
-while ( numReflections <= MAX_REFLECTIONS and not hasEscaped):
-    
-    # Increment the number of reflections so far
-    numReflections += 1
+    global cLine, MAX_REFLECTIONS, hasEscaped, numReflections
 
-    if sourceCircle == 1: # The cline reflected from c1
+    cLine = line
+    MAX_REFLECTIONS = max_reflections
 
-        # Set the data and call the stepper
-        c1_data = [False] # cline can't reflect on c1 if from c1
-        c2_data = c2.reflection(cLine)
-        c3_data = c3.reflection(cLine)
+    hasEscaped = False
+    numReflections = 0
+    reflections = []
 
-        reflectionStepper(c1_data, c2_data, c3_data)
-
-    elif sourceCircle == 2: # The cline reflected from c2
+    # Find the next reflection as long as total number of reflection
+    #  smaller than a max number and the line has not escaped
+    while ( numReflections <= MAX_REFLECTIONS and not hasEscaped):
         
-        # Set the data and call the stepper
-        c1_data = c1.reflection(cLine)
-        c2_data = [False] # cline can't reflect on c2 if from c2
-        c3_data = c3.reflection(cLine)
-        
-        reflectionStepper(c1_data, c2_data, c3_data)
+        reflections += [sourceCircle]
+        # Increment the number of reflections so far
+        numReflections += 1
 
-    elif sourceCircle == 3:
+        if sourceCircle == 1: # The cline reflected from c1
 
-        # Set the data and call the stepper
-        c1_data = c1.reflection(cLine)
-        c2_data = c2.reflection(cLine)
-        c3_data = [False] # cline can't reflect on c3 if from c3
+            # Set the data and call the stepper
+            c1_data = [False] # cline can't reflect on c1 if from c1
+            c2_data = c2.reflection(cLine)
+            c3_data = c3.reflection(cLine)
 
-        reflectionStepper(c1_data, c2_data, c3_data)
+            reflectionStepper(c1_data, c2_data, c3_data)
 
-# Plot all circles and lines
-show_shapes(all_circles)
+        elif sourceCircle == 2: # The cline reflected from c2
+            
+            # Set the data and call the stepper
+            c1_data = c1.reflection(cLine)
+            c2_data = [False] # cline can't reflect on c2 if from c2
+            c3_data = c3.reflection(cLine)
+            
+            reflectionStepper(c1_data, c2_data, c3_data)
+
+        elif sourceCircle == 3:
+
+            # Set the data and call the stepper
+            c1_data = c1.reflection(cLine)
+            c2_data = c2.reflection(cLine)
+            c3_data = [False] # cline can't reflect on c3 if from c3
+
+            reflectionStepper(c1_data, c2_data, c3_data)
+
+    if numReflections > MAX_REFLECTIONS:
+        # Plot all circles and lines
+        show_shapes(all_circles)
+        return [True, reflections]
     
+    return [False]
+
+pinball(cLine, 3)
