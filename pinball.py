@@ -35,6 +35,21 @@ all_circles = [c1.eq, c2.eq,c3.eq]
 Functions 
 
 '''
+
+def set_cd_cr_ratio(ratio):
+
+    global CD_CR_RATIO, cxPoint, c1Cen, c2Cen, c3Cen, c1, c2, c3, all_circles
+
+    CD_CR_RATIO = ratio
+    cxPoint = mp.sqrt(CD_CR_RATIO ** 2 - (CD_CR_RATIO/2) **2 )
+    c1Cen = [0,0]
+    c2Cen = [cxPoint, CD_CR_RATIO/2]
+    c3Cen = [cxPoint, -CD_CR_RATIO/2]
+    c1 = cpt.Circle(c1Cen, 1)
+    c2 = cpt.Circle(c2Cen, 1)
+    c3 = cpt.Circle(c3Cen, 1)
+    all_circles = [c1.eq, c2.eq,c3.eq]
+
 # Helper function to display graphs and circles
 def show_shapes(patchs):
 
@@ -103,14 +118,18 @@ def reflectionStepper(c1_data, c2_data, c3_data):
 
 def create_line(x_value, angle):
 
-    return cpt.Line(c1.evaluate_x(x_value), angle)
+    if angle < 0:
+
+        return cpt.Line(c1.evaluate_x(x_value)[0], angle)
+
+    return cpt.Line(c1.evaluate_x(x_value)[1], angle)
 
 '''
 
 Script
 
 '''
-def pinball(line, max_reflections):
+def run(line, max_reflections, plot):
 
     global cLine, MAX_REFLECTIONS, hasEscaped, numReflections
 
@@ -156,11 +175,11 @@ def pinball(line, max_reflections):
 
             reflectionStepper(c1_data, c2_data, c3_data)
 
+    if plot:
+        show_shapes(all_circles)
+
     if numReflections > MAX_REFLECTIONS:
         # Plot all circles and lines
-        show_shapes(all_circles)
         return [True, reflections]
     
     return [False]
-
-pinball(cLine, 3)
